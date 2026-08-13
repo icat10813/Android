@@ -1,0 +1,6 @@
+{
+  "name": "Inventory POS",
+  "description": "Sistem Inventory & Point of Sale (POS) profesional modern dengan QR scanner, manajemen stok, supplier, pelanggan, gudang, laporan, dan mode offline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
