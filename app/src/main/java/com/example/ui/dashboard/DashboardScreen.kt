@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,14 +35,24 @@ import com.example.utils.DateFormatter
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
+    scannedCode: String? = null,
+    onClearScannedCode: () -> Unit = {},
     onNavigateToPos: () -> Unit,
     onNavigateToQrScanner: () -> Unit,
     onNavigateToAddProduct: () -> Unit,
     onNavigateToStockIn: () -> Unit,
+    onNavigateToStockInWithCode: (String) -> Unit = {},
     onNavigateToStockOut: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    LaunchedEffect(scannedCode) {
+        if (!scannedCode.isNullOrEmpty()) {
+            onNavigateToStockInWithCode(scannedCode)
+            onClearScannedCode()
+        }
+    }
 
     Scaffold { innerPadding ->
         if (uiState.isLoading) {

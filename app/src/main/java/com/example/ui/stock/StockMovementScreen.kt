@@ -2,6 +2,7 @@ package com.example.ui.stock
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +37,8 @@ fun StockMovementScreen(
     type: String, // "IN" or "OUT"
     repository: InventoryRepository,
     productViewModel: ProductViewModel,
+    scannedCode: String? = null,
+    onNavigateToQrScanner: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -74,6 +78,20 @@ fun StockMovementScreen(
         }
     }
 
+    LaunchedEffect(scannedCode, productsState.products) {
+        if (!scannedCode.isNullOrEmpty() && productsState.products.isNotEmpty()) {
+            val matchingProduct = productsState.products.find { 
+                it.code == scannedCode || it.sku == scannedCode || it.barcode == scannedCode 
+            }
+            if (matchingProduct != null) {
+                selectedProductId = matchingProduct.id
+                Toast.makeText(context, "Produk dipilih: ${matchingProduct.name}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Barcode tidak ditemukan", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -109,37 +127,54 @@ fun StockMovementScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    // Product Dropdown
-                    ExposedDropdownMenuBox(
-                        expanded = expandedProd,
-                        onExpandedChange = { expandedProd = !expandedProd }
+                    // Product Dropdown & Scan QR
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val prodName = productsState.products.find { it.id == selectedProductId }?.name ?: "Pilih Barang"
-                        OutlinedTextField(
-                            value = prodName,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Pilih Barang / Produk") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProd) },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                                .testTag("select_product_dropdown")
-                        )
-                        ExposedDropdownMenu(
+                        ExposedDropdownMenuBox(
                             expanded = expandedProd,
-                            onDismissRequest = { expandedProd = false }
+                            onExpandedChange = { expandedProd = !expandedProd },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            productsState.products.forEach { p ->
-                                DropdownMenuItem(
-                                    text = { Text("${p.name} (Stok: ${p.stock})") },
-                                    onClick = {
-                                        selectedProductId = p.id
-                                        expandedProd = false
-                                    }
-                                )
+                            val prodName = productsState.products.find { it.id == selectedProductId }?.name ?: "Pilih Barang"
+                            OutlinedTextField(
+                                value = prodName,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Pilih Barang / Produk") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProd) },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
+                                    .testTag("select_product_dropdown")
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedProd,
+                                onDismissRequest = { expandedProd = false }
+                            ) {
+                                productsState.products.forEach { p ->
+                                    DropdownMenuItem(
+                                        text = { Text("${p.name} (Stok: ${p.stock})") },
+                                        onClick = {
+                                            selectedProductId = p.id
+                                            expandedProd = false
+                                        }
+                                    )
+                                }
                             }
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        IconButton(
+                            onClick = onNavigateToQrScanner,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR", tint = Color.White)
                         }
                     }
 

@@ -293,13 +293,20 @@ fun AppNavigationGraph(
                     )
                 }
 
-                composable(Screen.Dashboard.route) {
+                composable(Screen.Dashboard.route) { backStackEntry ->
+                    val scannedCode = backStackEntry.savedStateHandle.get<String>("scanned_code")
                     DashboardScreen(
                         viewModel = dashboardViewModel,
+                        scannedCode = scannedCode,
+                        onClearScannedCode = { backStackEntry.savedStateHandle.remove<String>("scanned_code") },
                         onNavigateToPos = { navController.navigate(Screen.Pos.route) },
                         onNavigateToQrScanner = { navController.navigate(Screen.QrScanner.route) },
                         onNavigateToAddProduct = { navController.navigate(Screen.AddEditProduct.createRoute("new")) },
                         onNavigateToStockIn = { navController.navigate(Screen.StockIn.route) },
+                        onNavigateToStockInWithCode = { code -> 
+                            navController.currentBackStackEntry?.savedStateHandle?.set("scanned_code", code)
+                            navController.navigate(Screen.StockIn.route)
+                        },
                         onNavigateToStockOut = { navController.navigate(Screen.StockOut.route) },
                         onNavigateToProductDetail = { id -> navController.navigate(Screen.ProductDetail.createRoute(id)) }
                     )
@@ -386,20 +393,26 @@ fun AppNavigationGraph(
                     )
                 }
 
-                composable(Screen.StockIn.route) {
+                composable(Screen.StockIn.route) { backStackEntry ->
+                    val scannedCode = backStackEntry.savedStateHandle.get<String>("scanned_code")
                     StockMovementScreen(
                         type = "IN",
                         repository = repository,
                         productViewModel = productViewModel,
+                        scannedCode = scannedCode,
+                        onNavigateToQrScanner = { navController.navigate(Screen.QrScanner.route) },
                         onBackClick = { navController.navigateUp() }
                     )
                 }
 
-                composable(Screen.StockOut.route) {
+                composable(Screen.StockOut.route) { backStackEntry ->
+                    val scannedCode = backStackEntry.savedStateHandle.get<String>("scanned_code")
                     StockMovementScreen(
                         type = "OUT",
                         repository = repository,
                         productViewModel = productViewModel,
+                        scannedCode = scannedCode,
+                        onNavigateToQrScanner = { navController.navigate(Screen.QrScanner.route) },
                         onBackClick = { navController.navigateUp() }
                     )
                 }

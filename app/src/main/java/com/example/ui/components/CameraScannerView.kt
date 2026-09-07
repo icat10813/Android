@@ -10,7 +10,9 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -45,6 +47,11 @@ import com.example.utils.QrCodeUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
+import java.util.concurrent.Executors
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -55,7 +62,6 @@ fun CameraScannerView(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     var isFlashOn by remember { mutableStateOf(false) }
@@ -83,9 +89,53 @@ fun CameraScannerView(
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
+
                         val preview = Preview.Builder().build().also {
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
+
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+
+                        val scannerOptions = BarcodeScannerOptions.Builder()
+                            .setBarcodeFormats(
+                                Barcode.FORMAT_QR_CODE,
+                                Barcode.FORMAT_EAN_13,
+                                Barcode.FORMAT_EAN_8,
+                                Barcode.FORMAT_UPC_A,
+                                Barcode.FORMAT_UPC_E,
+                                Barcode.FORMAT_CODE_128,
+                                Barcode.FORMAT_CODE_39
+                            )
+                            .build()
+                        val scanner = BarcodeScanning.getClient(scannerOptions)
+                        val executor = Executors.newSingleThreadExecutor()
+
+                        imageAnalysis.setAnalyzer(executor, @ExperimentalGetImage object : ImageAnalysis.Analyzer {
+                            override fun analyze(imageProxy: ImageProxy) {
+                                val mediaImage = imageProxy.image
+                                if (mediaImage != null) {
+                                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                    scanner.process(image)
+                                        .addOnSuccessListener { barcodes ->
+                                            if (barcodes.isNotEmpty()) {
+                                                val rawValue = barcodes.first().rawValue
+                                                if (rawValue != null && rawValue != lastScannedCode) {
+                                                    lastScannedCode = rawValue
+                                                    triggerHapticFeedback(context)
+                                                    onCodeScanned(QrCodeUtils.parseScannedProductCode(rawValue))
+                                                }
+                                            }
+                                        }
+                                        .addOnCompleteListener {
+                                            imageProxy.close()
+                                        }
+                                } else {
+                                    imageProxy.close()
+                                }
+                            }
+                        })
 
                         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
@@ -94,7 +144,8 @@ fun CameraScannerView(
                             camera = cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraSelector,
-                                preview
+                                preview,
+                                imageAnalysis
                             )
                         } catch (e: Exception) {
                             Log.e("CameraScannerView", "Use case binding failed", e)
