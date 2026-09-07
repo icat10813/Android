@@ -400,6 +400,7 @@ fun AppNavigationGraph(
                         repository = repository,
                         productViewModel = productViewModel,
                         scannedCode = scannedCode,
+                        onClearScannedCode = { backStackEntry.savedStateHandle.remove<String>("scanned_code") },
                         onNavigateToQrScanner = { navController.navigate(Screen.QrScanner.route) },
                         onBackClick = { navController.navigateUp() }
                     )
@@ -412,6 +413,7 @@ fun AppNavigationGraph(
                         repository = repository,
                         productViewModel = productViewModel,
                         scannedCode = scannedCode,
+                        onClearScannedCode = { backStackEntry.savedStateHandle.remove<String>("scanned_code") },
                         onNavigateToQrScanner = { navController.navigate(Screen.QrScanner.route) },
                         onBackClick = { navController.navigateUp() }
                     )

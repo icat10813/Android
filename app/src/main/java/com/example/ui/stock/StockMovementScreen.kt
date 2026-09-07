@@ -38,6 +38,7 @@ fun StockMovementScreen(
     repository: InventoryRepository,
     productViewModel: ProductViewModel,
     scannedCode: String? = null,
+    onClearScannedCode: () -> Unit = {},
     onNavigateToQrScanner: () -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -89,6 +90,7 @@ fun StockMovementScreen(
             } else {
                 Toast.makeText(context, "Barcode tidak ditemukan", Toast.LENGTH_SHORT).show()
             }
+            onClearScannedCode()
         }
     }
 
